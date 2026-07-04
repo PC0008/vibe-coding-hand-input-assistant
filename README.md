@@ -28,5 +28,6 @@ scripts/build-app.sh
 
 ```text
 .build/app/Vibe 手持输入助手.app
+release/VibeHandInputAssistant-0.1.0/Vibe 手持输入助手.app
+release/VibeHandInputAssistant-0.1.0.zip
 ```
-

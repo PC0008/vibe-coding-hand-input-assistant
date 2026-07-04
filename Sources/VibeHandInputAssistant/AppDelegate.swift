@@ -38,8 +38,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem?.button?.title = "V"
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        if let image = NSImage(named: "MenuIconTemplate") {
+            image.isTemplate = true
+            image.size = NSSize(width: 18, height: 18)
+            statusItem?.button?.image = image
+        } else {
+            statusItem?.button?.title = "V"
+        }
         statusItem?.button?.toolTip = "Vibe 手持输入助手"
         rebuildMenu()
     }

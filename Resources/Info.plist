@@ -6,6 +6,8 @@
   <string>zh_CN</string>
   <key>CFBundleExecutable</key>
   <string>VibeHandInputAssistant</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
   <string>com.zhiduoxing.vibe-hand-input-assistant</string>
   <key>CFBundleInfoDictionaryVersion</key>
@@ -26,4 +28,3 @@
   <string>Copyright 2026</string>
 </dict>
 </plist>
-
