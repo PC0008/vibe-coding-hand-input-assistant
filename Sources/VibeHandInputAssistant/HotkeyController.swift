@@ -29,7 +29,7 @@ final class HotkeyController {
         eventTap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
-            options: .listenOnly,
+            options: .defaultTap,
             eventsOfInterest: mask,
             callback: callback,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
@@ -80,7 +80,7 @@ final class HotkeyController {
             if isDown && !isRepeat {
                 DispatchQueue.main.async { [actions] in actions.openTargetApp() }
             }
-            return Unmanaged.passUnretained(event)
+            return nil
 
         case KeyCodes.f14:
             if isDown && !isRepeat && !f14IsDown {
@@ -90,13 +90,13 @@ final class HotkeyController {
                 f14IsDown = false
                 DispatchQueue.main.async { [actions] in actions.voiceUp() }
             }
-            return Unmanaged.passUnretained(event)
+            return nil
 
         case KeyCodes.f15:
             if isDown && !isRepeat {
                 DispatchQueue.main.async { [actions] in actions.sendMessage() }
             }
-            return Unmanaged.passUnretained(event)
+            return nil
 
         default:
             return Unmanaged.passUnretained(event)
