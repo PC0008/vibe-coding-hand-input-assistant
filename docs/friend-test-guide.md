@@ -1,41 +1,48 @@
-# Vibe 手持输入助手朋友测试指南
+# Vibe Coding手持输入助手朋友测试指南
 
 ## 发送给朋友的文件
 
 当前测试包：
 
 ```text
-release/VibeHandInputAssistant-0.1.0.zip
+release/VibeCodingHandInputAssistant-0.1.0.dmg
 ```
 
-朋友解压后会得到：
+朋友打开 DMG 后会看到：
 
 ```text
-Vibe 手持输入助手.app
+Vibe Coding手持输入助手.app
 ```
 
 ## 安装步骤
 
-1. 把 `Vibe 手持输入助手.app` 拖到 `/Applications`。
-2. 双击打开。
-3. 如果 macOS 提示来自未认证开发者，小范围测试时可在系统设置里允许打开。
-4. 打开系统设置：
+1. 打开 DMG。
+2. 把 `Vibe Coding手持输入助手.app` 拖到 `/Applications`。
+3. 到“应用程序”里右键 App，选择“打开”。
+4. 如果 macOS 提示来自未认证开发者，小范围测试时可在系统设置里允许打开。
+5. 如果 macOS 提示“已损坏，无法打开”，打开终端执行：
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Vibe Coding手持输入助手.app"
+```
+
+6. 打开系统设置：
 
 ```text
 隐私与安全性 -> 辅助功能
 ```
 
-5. 添加并开启：
+7. 添加并开启：
 
 ```text
-/Applications/Vibe 手持输入助手.app
+/Applications/Vibe Coding手持输入助手.app
 ```
 
-6. 重新打开 App。
-7. 蓝牙连接：
+8. 重新打开 App。
+9. 蓝牙连接：
 
 ```text
-StickS3 Codex Remote
+Vibe Coding Remote
 ```
 
 ## 使用方式
@@ -61,3 +68,8 @@ StickS3 Codex Remote
 
 正式产品版应使用 Apple Developer ID 签名和公证，避免手动绕过安全提示。
 
+详细图文/排障说明见：
+
+```text
+docs/Vibe Coding手持输入助手-Mac安装与常见提示处理.docx
+```

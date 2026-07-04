@@ -1,6 +1,8 @@
 # Vibe Coding手持输入助手
 
-`Vibe Coding手持输入助手` 是一个 macOS App，用来配合 M5Stack StickS3 手持遥控器控制 Codex、Claude、Claude Code、Kimi 或自定义 AI 软件。
+`Vibe Coding手持输入助手` 是一个开源 macOS App，用来配合 M5Stack StickS3 手持遥控器控制 Codex、Claude、Claude Code、Kimi 或自定义 AI 软件。
+
+这个项目当前主要面向 **Mac 电脑**。如果只是想直接使用，请下载打包好的 DMG 安装包；如果想二次开发或移植到其他平台，可以从源码开始。
 
 核心功能：
 
@@ -11,6 +13,57 @@
 - 支持录制自定义语音快捷键。
 - 内置 StickS3 一键烧录工具。
 - 输出可拖到 Applications 的 DMG 安装包。
+
+## 直接下载安装
+
+Mac 用户建议从 GitHub Releases 下载最新 DMG：
+
+```text
+https://github.com/PC0008/vibe-coding-hand-input-assistant/releases
+```
+
+下载后双击 DMG，把 `Vibe Coding手持输入助手` 拖到 `Applications / 应用程序`。
+
+当前测试版使用 ad-hoc 签名，没有做 Apple Developer ID 公证。首次在朋友电脑打开时，macOS 可能提示“无法验证开发者”或“App 已损坏”。处理方式见：
+
+```text
+docs/Vibe Coding手持输入助手-Mac安装与常见提示处理.docx
+```
+
+常用处理命令：
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Vibe Coding手持输入助手.app"
+```
+
+然后右键 App，选择“打开”，并在系统设置中开启辅助功能权限。
+
+## 适用平台
+
+### macOS
+
+当前 App 端只支持 macOS。它使用 macOS 的辅助功能权限、全局键盘事件监听和 `NSWorkspace` 来完成：
+
+- 打开/聚焦目标 AI 编程软件。
+- 按住触发语音输入。
+- 双击发送当前输入。
+
+### Windows / 其他平台
+
+当前仓库没有现成 Windows App。StickS3 固件和按键协议可以复用，硬件会发送 `F13/F14/F15`：
+
+- `F13`：打开/聚焦目标软件。
+- `F14`：语音输入按下/松开。
+- `F15`：发送。
+
+但 Windows 端不能只“改一下 Codex 名称”就直接使用，需要重新实现电脑端程序，包括：
+
+- 全局监听 `F13/F14/F15`。
+- 启动或聚焦目标软件。
+- 模拟 Windows 上对应的语音输入快捷键。
+- 处理权限、后台运行、托盘图标和安装包。
+
+换句话说，Windows 版可以参考本项目协议和界面逻辑移植，但需要单独开发。
 
 ## 本地运行
 
