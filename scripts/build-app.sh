@@ -16,6 +16,6 @@ cp "$ROOT_DIR/.build/release/$EXECUTABLE_NAME" "$APP_DIR/Contents/MacOS/$EXECUTA
 cp "$ROOT_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
 
 chmod +x "$APP_DIR/Contents/MacOS/$EXECUTABLE_NAME"
+codesign --force --deep --sign - "$APP_DIR"
 
 echo "$APP_DIR"
-
