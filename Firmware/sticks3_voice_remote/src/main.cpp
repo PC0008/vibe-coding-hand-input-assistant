@@ -141,32 +141,62 @@ bool updateBatteryLevel(bool force = false) {
   return changed;
 }
 
-void drawBatteryBadge() {
-  char batteryText[20];
+uint16_t batteryColor(int level) {
+  if (level < 0) {
+    return TFT_DARKGREY;
+  }
+  if (level <= 20) {
+    return TFT_RED;
+  }
+  if (level <= 40) {
+    return TFT_ORANGE;
+  }
+  return TFT_GREEN;
+}
+
+void drawBatteryBar() {
+  char percentText[8];
   const int level = lastBatteryPercent >= 0 ? lastBatteryPercent : readBatteryPercent();
   if (level >= 0) {
-    snprintf(batteryText, sizeof(batteryText), "电量 %d%%", level);
+    snprintf(percentText, sizeof(percentText), "%d%%", level);
   } else {
-    snprintf(batteryText, sizeof(batteryText), "电量 --%%");
+    snprintf(percentText, sizeof(percentText), "--%%");
   }
 
-  M5.Display.fillRect(0, 0, M5.Display.width(), 18, TFT_BLACK);
+  const int screenWidth = M5.Display.width();
+  const int barX = 44;
+  const int barY = 6;
+  const int barWidth = 70;
+  const int barHeight = 14;
+  const int fillWidth = level >= 0 ? (barWidth - 4) * level / 100 : 0;
+
+  M5.Display.fillRect(0, 0, screenWidth, 26, TFT_BLACK);
   M5.Display.setFont(&fonts::efontCN_12);
   M5.Display.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+  M5.Display.setTextDatum(top_left);
+  M5.Display.drawString("电量", 6, 7);
+
+  M5.Display.drawRoundRect(barX, barY, barWidth, barHeight, 3, TFT_LIGHTGREY);
+  if (fillWidth > 0) {
+    M5.Display.fillRoundRect(barX + 2, barY + 2, fillWidth, barHeight - 4, 2, batteryColor(level));
+  }
+
+  M5.Display.setFont(&fonts::efontCN_16);
+  M5.Display.setTextColor(level >= 0 ? batteryColor(level) : TFT_LIGHTGREY, TFT_BLACK);
   M5.Display.setTextDatum(top_right);
-  M5.Display.drawString(batteryText, M5.Display.width() - 6, 3);
+  M5.Display.drawString(percentText, screenWidth - 6, 4);
 }
 
 void drawStatus(const char* line1, const char* line2 = "", bool force = false) {
   wakeDisplay();
   M5.Display.fillScreen(TFT_BLACK);
-  drawBatteryBadge();
+  drawBatteryBar();
   M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.setTextDatum(middle_center);
   M5.Display.setFont(&fonts::efontCN_24);
-  M5.Display.drawString(line1, M5.Display.width() / 2, M5.Display.height() / 2 - 10);
+  M5.Display.drawString(line1, M5.Display.width() / 2, 45);
   M5.Display.setFont(&fonts::efontCN_16);
-  M5.Display.drawString(line2, M5.Display.width() / 2, M5.Display.height() / 2 + 22);
+  M5.Display.drawString(line2, M5.Display.width() / 2, 68);
 }
 
 void sendKeyReport(uint8_t usage) {
@@ -346,7 +376,7 @@ void loop() {
   }
 
   if (updateBatteryLevel()) {
-    drawBatteryBadge();
+    drawBatteryBar();
   }
   updateDisplayPower(now);
 

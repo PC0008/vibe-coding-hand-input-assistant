@@ -19,7 +19,7 @@ struct RemoteBatteryState: Equatable {
         }
         if isDevicePresent {
             if ["CoreBluetooth", "IORegistry", "蓝牙系统信息"].contains(source) {
-                return "已发现设备，正在等待电量服务"
+                return "等待 Vibe 电量服务，请重新连接设备"
             }
             return source
         }
@@ -35,25 +35,11 @@ enum RemoteBatteryReader {
 
         if let ioregOutput = run("/usr/sbin/ioreg", arguments: ["-r", "-l", "-w", "0", "-c", "IOHIDDevice"], timeout: 2.0) {
             let result = parseIORegistry(ioregOutput)
-            if let percentage = result.percentage {
-                return RemoteBatteryState(
-                    percentage: percentage,
-                    isDevicePresent: true,
-                    source: "来自蓝牙 HID"
-                )
-            }
             detectedDevice = detectedDevice || result.isDevicePresent
         }
 
         if let bluetoothOutput = run("/usr/sbin/system_profiler", arguments: ["SPBluetoothDataType", "-json"], timeout: 2.0) {
             let result = parseSystemProfiler(bluetoothOutput)
-            if let percentage = result.percentage {
-                return RemoteBatteryState(
-                    percentage: percentage,
-                    isDevicePresent: true,
-                    source: "来自蓝牙系统信息"
-                )
-            }
             detectedDevice = detectedDevice || result.isDevicePresent
         }
 
@@ -62,7 +48,7 @@ enum RemoteBatteryReader {
             return RemoteBatteryState(
                 percentage: percentage,
                 isDevicePresent: true,
-                source: "来自蓝牙电池服务"
+                source: bluetoothResult.source ?? "来自 Vibe 电量服务"
             )
         }
 
@@ -70,7 +56,7 @@ enum RemoteBatteryReader {
             return RemoteBatteryState(
                 percentage: nil,
                 isDevicePresent: true,
-                source: bluetoothResult.source ?? "CoreBluetooth"
+                source: bluetoothResult.source ?? "等待 Vibe 电量服务，请重新连接设备"
             )
         }
 
@@ -246,8 +232,6 @@ private final class BluetoothBatteryReader: NSObject, CBCentralManagerDelegate, 
     private let semaphore = DispatchSemaphore(value: 0)
     private let vibeBatteryServiceUUID = CBUUID(string: "7A8B0001-6D3B-4C1A-8D4F-9E2B5C7A1000")
     private let vibeBatteryLevelUUID = CBUUID(string: "7A8B0002-6D3B-4C1A-8D4F-9E2B5C7A1000")
-    private let batteryServiceUUID = CBUUID(string: "180F")
-    private let batteryLevelUUID = CBUUID(string: "2A19")
     private let hidServiceUUID = CBUUID(string: "1812")
 
     private var central: CBCentralManager?
@@ -281,7 +265,7 @@ private final class BluetoothBatteryReader: NSObject, CBCentralManagerDelegate, 
                     self.result = (
                         percentage: nil,
                         isDevicePresent: self.result.isDevicePresent,
-                        source: self.result.isDevicePresent ? "读取电量超时" : "未发现蓝牙电池服务"
+                        source: self.result.isDevicePresent ? "读取 Vibe 电量超时，请重试" : "未发现 Vibe 电量服务"
                     )
                     self.isFinished = true
                 }
@@ -311,8 +295,7 @@ private final class BluetoothBatteryReader: NSObject, CBCentralManagerDelegate, 
             return
         }
 
-        let candidates = central.retrieveConnectedPeripherals(withServices: [batteryServiceUUID])
-            + central.retrieveConnectedPeripherals(withServices: [hidServiceUUID])
+        let candidates = central.retrieveConnectedPeripherals(withServices: [hidServiceUUID])
 
         if let match = firstMatchingPeripheral(candidates) {
             connect(match, using: central)
@@ -361,7 +344,7 @@ private final class BluetoothBatteryReader: NSObject, CBCentralManagerDelegate, 
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        peripheral.discoverServices([vibeBatteryServiceUUID, batteryServiceUUID])
+        peripheral.discoverServices([vibeBatteryServiceUUID])
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
@@ -371,7 +354,7 @@ private final class BluetoothBatteryReader: NSObject, CBCentralManagerDelegate, 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         guard error == nil,
               let services = peripheral.services else {
-            finish(percentage: nil, isDevicePresent: true, source: "未找到电池服务")
+            finish(percentage: nil, isDevicePresent: true, source: "未找到 Vibe 电量服务，请重新连接设备")
             return
         }
 
@@ -380,18 +363,14 @@ private final class BluetoothBatteryReader: NSObject, CBCentralManagerDelegate, 
             return
         }
 
-        guard let service = services.first(where: { $0.uuid == batteryServiceUUID }) else {
-            finish(percentage: nil, isDevicePresent: true, source: "未找到电池服务")
-            return
-        }
-        peripheral.discoverCharacteristics([batteryLevelUUID], for: service)
+        finish(percentage: nil, isDevicePresent: true, source: "未找到 Vibe 电量服务，请重新连接设备")
     }
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        let targetUUID = service.uuid == vibeBatteryServiceUUID ? vibeBatteryLevelUUID : batteryLevelUUID
         guard error == nil,
-              let characteristic = service.characteristics?.first(where: { $0.uuid == targetUUID }) else {
-            finish(percentage: nil, isDevicePresent: true, source: "未找到电量字段")
+              service.uuid == vibeBatteryServiceUUID,
+              let characteristic = service.characteristics?.first(where: { $0.uuid == vibeBatteryLevelUUID }) else {
+            finish(percentage: nil, isDevicePresent: true, source: "未找到 Vibe 电量字段，请重新连接设备")
             return
         }
         peripheral.readValue(for: characteristic)
@@ -399,13 +378,12 @@ private final class BluetoothBatteryReader: NSObject, CBCentralManagerDelegate, 
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard error == nil,
-              (characteristic.uuid == vibeBatteryLevelUUID || characteristic.uuid == batteryLevelUUID),
+              characteristic.uuid == vibeBatteryLevelUUID,
               let byte = characteristic.value?.first else {
             finish(percentage: nil, isDevicePresent: true, source: "读取电量失败")
             return
         }
-        let source = characteristic.uuid == vibeBatteryLevelUUID ? "来自 Vibe 电量服务" : "来自蓝牙电池服务"
-        finish(percentage: Int(min(byte, 100)), isDevicePresent: true, source: source)
+        finish(percentage: Int(min(byte, 100)), isDevicePresent: true, source: "来自 Vibe 电量服务")
     }
 
     private func finish(percentage: Int?, isDevicePresent: Bool, source: String?) {

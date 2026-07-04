@@ -5,7 +5,7 @@
 当前测试包：
 
 ```text
-release/VibeCodingHandInputAssistant-0.1.1.dmg
+release/VibeCodingHandInputAssistant-0.1.2.dmg
 ```
 
 朋友打开 DMG 后会看到：
@@ -64,7 +64,7 @@ Vibe Coding Remote
 5. 按住正面蓝色按钮说话，松开结束。
 6. 确认文字无误后，双击正面蓝色按钮发送。
 
-硬件屏幕会显示连接状态、当前动作和设备电量。电脑端 App 设置面板也会显示电量，默认约每 30 秒刷新一次。
+硬件屏幕会显示连接状态、当前动作和大号电量条。电脑端 App 设置面板也会显示电量，默认约每 30 秒刷新一次。
 
 ## 目标软件
 
@@ -75,6 +75,10 @@ Vibe Coding Remote
 - Claude Code
 - Kimi
 - 自定义 App
+
+## 固件烧录
+
+v0.1.2 更新了 StickS3 屏幕电量条和电脑端电量读取逻辑。升级 App 后，需要把 StickS3 用 USB 线连接到电脑，在 App 设置页点击“展开设备烧录”，检测到串口后点“一键烧录”。烧录完成后拔掉 USB 线，再到蓝牙里连接 `Vibe Coding Remote`。
 
 ## 注意
 

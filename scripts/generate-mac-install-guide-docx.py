@@ -11,7 +11,7 @@ from docx.shared import Inches, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "Vibe Coding手持输入助手-Mac安装与常见提示处理.docx"
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 
 
 def set_cell_shading(cell, fill):
@@ -239,11 +239,12 @@ def build():
     add_note(
         doc,
         "电量与屏幕提示",
-        "硬件屏幕会显示连接状态、当前动作和设备电量。电脑端 App 设置面板也会显示电量，默认约每 30 秒刷新一次。"
+        "硬件屏幕会显示连接状态、当前动作和大号电量条。电脑端 App 设置面板也会显示电量，默认约每 30 秒刷新一次。v0.1.2 更新了固件屏幕电量条，升级后需要重新烧录 StickS3。"
     )
 
     add_heading(doc, "六、一键烧录注意事项")
     add_bullets(doc, [
+        "App 设置页里的“设备烧录”默认折叠；需要更新硬件固件时，点击“展开设备烧录”。",
         "使用能传数据的 USB 线，不要只用充电线。",
         "烧录过程中不要拔线，不要让电脑睡眠。",
         "如果烧录失败，通常可以让 StickS3 重新进入下载模式后再烧一次。",

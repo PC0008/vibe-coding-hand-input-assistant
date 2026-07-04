@@ -19,6 +19,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let flashLogTextView = NSTextView(frame: .zero)
     private let flashButton = NSButton(title: "一键烧录", target: nil, action: nil)
     private let refreshPortsButton = NSButton(title: "刷新设备", target: nil, action: nil)
+    private let flashToggleButton = NSButton(title: "展开设备烧录", target: nil, action: nil)
+    private let flashContentStack = NSStackView()
     private let batteryLevelIndicator = NSLevelIndicator(frame: .zero)
     private let batteryPercentLabel = NSTextField(labelWithString: "未检测到")
     private let batteryDetailLabel = NSTextField(labelWithString: "请先连接 Vibe Coding Remote")
@@ -31,6 +33,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var shortcutRecordingTimer: Timer?
     private var shortcutMonitor: Any?
     private var recordedShortcut: KeyboardShortcut?
+    private var isFlashSectionExpanded = false
 
     init(settings: SettingsStore, onSave: @escaping () -> Void) {
         self.settings = settings
@@ -50,7 +53,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.delegate = self
         window.contentView = buildContentView()
         loadValues()
-        refreshSerialPorts()
     }
 
     required init?(coder: NSCoder) {
@@ -60,7 +62,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
         refreshPermissionStatus()
-        refreshSerialPorts()
+        if isFlashSectionExpanded {
+            refreshSerialPorts()
+        }
         refreshBatteryStatus()
         startPermissionRefreshTimer()
         startBatteryRefreshTimer()
@@ -106,10 +110,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         stack.addArrangedSubview(helpText())
         stack.addArrangedSubview(buttonRow())
         stack.addArrangedSubview(separator(width: 600))
-        stack.addArrangedSubview(sectionTitle("设备烧录"))
-        stack.addArrangedSubview(flashIntroText())
-        stack.addArrangedSubview(row(label: "连接设备", control: flashDeviceRow()))
-        stack.addArrangedSubview(flashLogView())
+        stack.addArrangedSubview(flashSectionView())
         stack.addArrangedSubview(separator(width: 600))
         stack.addArrangedSubview(authorText())
 
@@ -205,6 +206,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         refreshPortsButton.action = #selector(refreshSerialPorts)
         flashButton.target = self
         flashButton.action = #selector(startFlash)
+        flashToggleButton.target = self
+        flashToggleButton.action = #selector(toggleFlashSection)
         refreshBatteryButton.target = self
         refreshBatteryButton.action = #selector(refreshBatteryStatus)
 
@@ -380,27 +383,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window?.close()
     }
 
-    @objc private func testTarget() {
-        saveValues()
-        AppActions(settings: settings).openTargetApp()
-    }
-
-    @objc private func testSend() {
-        saveValues()
-        AppActions(settings: settings).sendMessage()
-    }
-
-    @objc private func testVoice() {
-        stopShortcutRecording()
-        saveValues()
-        let actions = AppActions(settings: settings)
-        actions.voiceDown()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            actions.voiceUp()
-            actions.releaseKeys()
-        }
-    }
-
     @objc private func startShortcutRecording() {
         stopShortcutRecording()
         shortcutLabel.stringValue = "请按下要录制的组合键..."
@@ -457,6 +439,24 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         shortcutRecordingTimer = nil
     }
 
+    @objc private func toggleFlashSection() {
+        guard !firmwareFlasher.isRunning else {
+            return
+        }
+
+        setFlashSectionExpanded(!isFlashSectionExpanded, refreshPorts: true)
+    }
+
+    private func setFlashSectionExpanded(_ expanded: Bool, refreshPorts: Bool) {
+        isFlashSectionExpanded = expanded
+        flashContentStack.isHidden = !expanded
+        flashToggleButton.title = expanded ? "收起设备烧录" : "展开设备烧录"
+        flashToggleButton.image = NSImage(systemSymbolName: expanded ? "chevron.up" : "chevron.down", accessibilityDescription: nil)
+        if expanded && refreshPorts {
+            refreshSerialPorts()
+        }
+    }
+
     @objc private func refreshSerialPorts() {
         let previousSelection = portPopup.selectedItem?.title
         let ports = FirmwareFlasher.availableSerialPorts()
@@ -484,6 +484,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func startFlash() {
+        setFlashSectionExpanded(true, refreshPorts: false)
         guard portPopup.isEnabled, let port = portPopup.selectedItem?.title, port.hasPrefix("/dev/") else {
             appendFlashLog("未检测到可烧录设备。请插入 StickS3 后点“刷新设备”。\n")
             return
@@ -491,6 +492,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
         flashButton.isEnabled = false
         refreshPortsButton.isEnabled = false
+        flashToggleButton.isEnabled = false
         portPopup.isEnabled = false
         flashStatusLabel.stringValue = "正在烧录..."
         flashStatusLabel.textColor = .systemBlue
@@ -500,6 +502,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             self?.appendFlashLog(text)
         } onComplete: { [weak self] success in
             self?.refreshPortsButton.isEnabled = true
+            self?.flashToggleButton.isEnabled = true
             self?.refreshSerialPorts()
             self?.flashStatusLabel.stringValue = success ? "烧录完成" : "烧录失败"
             self?.flashStatusLabel.textColor = success ? .systemGreen : .systemRed
@@ -551,16 +554,44 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         stack.orientation = .horizontal
         stack.spacing = 10
 
-        let testButton = NSButton(title: "测试目标软件", target: self, action: #selector(testTarget))
-        let sendButton = NSButton(title: "测试发送", target: self, action: #selector(testSend))
-        let voiceButton = NSButton(title: "测试语音", target: self, action: #selector(testVoice))
         let saveButton = NSButton(title: "保存", target: self, action: #selector(saveAndClose))
         saveButton.keyEquivalent = "\r"
 
-        stack.addArrangedSubview(testButton)
-        stack.addArrangedSubview(sendButton)
-        stack.addArrangedSubview(voiceButton)
         stack.addArrangedSubview(saveButton)
+        return stack
+    }
+
+    private func flashSectionView() -> NSView {
+        let title = sectionTitle("设备烧录")
+        let hint = NSTextField(labelWithString: "需要更新手持硬件固件时再展开。")
+        hint.textColor = .secondaryLabelColor
+        hint.font = .systemFont(ofSize: 12)
+
+        flashToggleButton.bezelStyle = .rounded
+        flashToggleButton.imagePosition = .imageLeading
+        flashToggleButton.image = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: nil)
+
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let header = NSStackView(views: [title, hint, spacer, flashToggleButton])
+        header.orientation = .horizontal
+        header.alignment = .centerY
+        header.spacing = 10
+        header.widthAnchor.constraint(equalToConstant: 600).isActive = true
+
+        flashContentStack.orientation = .vertical
+        flashContentStack.alignment = .leading
+        flashContentStack.spacing = 10
+        flashContentStack.addArrangedSubview(flashIntroText())
+        flashContentStack.addArrangedSubview(row(label: "连接设备", control: flashDeviceRow()))
+        flashContentStack.addArrangedSubview(flashLogView())
+        flashContentStack.isHidden = true
+
+        let stack = NSStackView(views: [header, flashContentStack])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 10
         return stack
     }
 
