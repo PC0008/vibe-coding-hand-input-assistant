@@ -14,29 +14,12 @@ final class AppActions {
         let target = settings.selectedTarget
 
         if !target.bundleIdentifier.isEmpty {
-            if activateRunningApp(bundleIdentifier: target.bundleIdentifier) {
-                return
-            }
-
-            if openApplication(bundleIdentifier: target.bundleIdentifier) {
-                return
-            }
-
-            _ = runOpen(arguments: ["-b", target.bundleIdentifier])
-            activateAfterDelay(bundleIdentifier: target.bundleIdentifier, appName: target.appName)
+            activateTarget(bundleIdentifier: target.bundleIdentifier, appName: target.appName)
+            return
         }
 
         if !target.appName.isEmpty {
-            if activateRunningApp(appName: target.appName) {
-                return
-            }
-
-            if openApplication(appName: target.appName) {
-                return
-            }
-
-            _ = runOpen(arguments: ["-a", target.appName])
-            activateAfterDelay(bundleIdentifier: target.bundleIdentifier, appName: target.appName)
+            activateTarget(bundleIdentifier: nil, appName: target.appName)
         }
     }
 
@@ -85,6 +68,53 @@ final class AppActions {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         process.arguments = arguments
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus == 0
+        } catch {
+            return false
+        }
+    }
+
+    private func activateTarget(bundleIdentifier: String?, appName: String?) {
+        if let bundleIdentifier,
+           !bundleIdentifier.isEmpty {
+            _ = runOpen(arguments: ["-b", bundleIdentifier])
+            _ = runAppleScript(lines: [
+                #"tell application id "\#(bundleIdentifier)" to activate"#,
+                #"tell application "System Events" to set frontmost of first process whose bundle identifier is "\#(bundleIdentifier)" to true"#
+            ])
+            _ = activateRunningApp(bundleIdentifier: bundleIdentifier)
+
+            if !openApplication(bundleIdentifier: bundleIdentifier) {
+                activateAfterDelay(bundleIdentifier: bundleIdentifier, appName: appName)
+            }
+            return
+        }
+
+        if let appName,
+           !appName.isEmpty {
+            _ = runOpen(arguments: ["-a", appName])
+            _ = runAppleScript(lines: [
+                #"tell application "\#(appName)" to activate"#,
+                #"tell application "System Events" to set frontmost of first process whose name is "\#(appName)" to true"#
+            ])
+            _ = activateRunningApp(appName: appName)
+
+            if !openApplication(appName: appName) {
+                activateAfterDelay(bundleIdentifier: bundleIdentifier, appName: appName)
+            }
+        }
+    }
+
+    private func runAppleScript(lines: [String]) -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = lines.flatMap { ["-e", $0] }
+        process.standardOutput = Pipe()
+        process.standardError = Pipe()
+
         do {
             try process.run()
             process.waitUntilExit()

@@ -8,6 +8,8 @@
 
 namespace {
 constexpr const char* kDeviceName = "Vibe Coding Remote";
+constexpr const char* kVibeBatteryServiceUUID = "7A8B0001-6D3B-4C1A-8D4F-9E2B5C7A1000";
+constexpr const char* kVibeBatteryLevelUUID = "7A8B0002-6D3B-4C1A-8D4F-9E2B5C7A1000";
 
 constexpr uint8_t HID_F13 = 0x68;
 constexpr uint8_t HID_F14 = 0x69;
@@ -16,10 +18,14 @@ constexpr uint8_t HID_F15 = 0x6A;
 constexpr uint32_t kVoiceHoldThresholdMs = 180;
 constexpr uint32_t kDoubleClickWindowMs = 360;
 constexpr uint32_t kDebounceMs = 25;
-constexpr uint32_t kBatteryUpdateMs = 15000;
+constexpr uint32_t kBatteryUpdateMs = 30000;
+constexpr uint32_t kScreenDimAfterMs = 10000;
+constexpr uint8_t kDisplayActiveBrightness = 150;
+constexpr uint8_t kDisplayDimBrightness = 24;
 
 BLEHIDDevice* hid = nullptr;
 BLECharacteristic* inputReport = nullptr;
+BLECharacteristic* vibeBatteryLevel = nullptr;
 BLEAdvertising* advertising = nullptr;
 
 bool bleConnected = false;
@@ -37,6 +43,8 @@ uint32_t sideEdgeAt = 0;
 
 int lastBatteryPercent = -1;
 uint32_t lastBatteryUpdateAt = 0;
+uint32_t lastDisplayActivityAt = 0;
+bool displayDimmed = false;
 
 const uint8_t kKeyboardReportMap[] = {
     0x05, 0x01,        // Usage Page (Generic Desktop)
@@ -91,6 +99,21 @@ int readBatteryPercent() {
   return level;
 }
 
+void wakeDisplay() {
+  lastDisplayActivityAt = millis();
+  if (displayDimmed) {
+    M5.Display.setBrightness(kDisplayActiveBrightness);
+    displayDimmed = false;
+  }
+}
+
+void updateDisplayPower(uint32_t now) {
+  if (!displayDimmed && now - lastDisplayActivityAt >= kScreenDimAfterMs) {
+    M5.Display.setBrightness(kDisplayDimBrightness);
+    displayDimmed = true;
+  }
+}
+
 bool updateBatteryLevel(bool force = false) {
   const uint32_t now = millis();
   if (!force && now - lastBatteryUpdateAt < kBatteryUpdateMs) {
@@ -107,6 +130,13 @@ bool updateBatteryLevel(bool force = false) {
   lastBatteryPercent = level;
   if (hid) {
     hid->setBatteryLevel(static_cast<uint8_t>(level));
+  }
+  if (vibeBatteryLevel) {
+    uint8_t batteryByte = static_cast<uint8_t>(level);
+    vibeBatteryLevel->setValue(&batteryByte, 1);
+    if (bleConnected && changed) {
+      vibeBatteryLevel->notify();
+    }
   }
   return changed;
 }
@@ -127,15 +157,16 @@ void drawBatteryBadge() {
   M5.Display.drawString(batteryText, M5.Display.width() - 6, 3);
 }
 
-void drawStatus(const char* line1, const char* line2 = "") {
+void drawStatus(const char* line1, const char* line2 = "", bool force = false) {
+  wakeDisplay();
   M5.Display.fillScreen(TFT_BLACK);
   drawBatteryBadge();
   M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.setTextDatum(middle_center);
+  M5.Display.setFont(&fonts::efontCN_24);
+  M5.Display.drawString(line1, M5.Display.width() / 2, M5.Display.height() / 2 - 10);
   M5.Display.setFont(&fonts::efontCN_16);
-  M5.Display.drawString(line1, M5.Display.width() / 2, M5.Display.height() / 2 - 14);
-  M5.Display.setFont(&fonts::efontCN_12);
-  M5.Display.drawString(line2, M5.Display.width() / 2, M5.Display.height() / 2 + 18);
+  M5.Display.drawString(line2, M5.Display.width() / 2, M5.Display.height() / 2 + 22);
 }
 
 void sendKeyReport(uint8_t usage) {
@@ -185,6 +216,14 @@ void startBleKeyboard() {
   hid->hidInfo(0x00, 0x02);
   hid->reportMap((uint8_t*)kKeyboardReportMap, sizeof(kKeyboardReportMap));
   hid->startServices();
+
+  BLEService* vibeBatteryService = server->createService(kVibeBatteryServiceUUID);
+  vibeBatteryLevel = vibeBatteryService->createCharacteristic(
+      kVibeBatteryLevelUUID,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+  vibeBatteryLevel->addDescriptor(new BLE2902());
+  vibeBatteryService->start();
+
   updateBatteryLevel(true);
 
   advertising = BLEDevice::getAdvertising();
@@ -281,12 +320,13 @@ void setup() {
   auto cfg = M5.config();
   cfg.fallback_board = m5::board_t::board_M5StickS3;
   cfg.clear_display = true;
-  cfg.led_brightness = 32;
+  cfg.led_brightness = 8;
   M5.begin(cfg);
 
   M5.Display.setRotation(1);
-  M5.Display.setBrightness(160);
-  drawStatus("等待连接", kDeviceName);
+  M5.Display.setBrightness(kDisplayActiveBrightness);
+  lastDisplayActivityAt = millis();
+  drawStatus("等待连接", kDeviceName, true);
 
   startBleKeyboard();
 }
@@ -308,6 +348,7 @@ void loop() {
   if (updateBatteryLevel()) {
     drawBatteryBadge();
   }
+  updateDisplayPower(now);
 
-  delay(5);
+  delay(10);
 }

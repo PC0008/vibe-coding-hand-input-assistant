@@ -21,7 +21,7 @@
 Mac 用户可以直接点击下载最新版 DMG：
 
 ```text
-https://github.com/PC0008/vibe-coding-hand-input-assistant/releases/download/v0.1.0/VibeCodingHandInputAssistant-0.1.0.dmg
+https://github.com/PC0008/vibe-coding-hand-input-assistant/releases/download/v0.1.1/VibeCodingHandInputAssistant-0.1.1.dmg
 ```
 
 下载后双击 DMG，把 `Vibe Coding手持输入助手` 拖到 `Applications / 应用程序`。
@@ -45,6 +45,28 @@ xattr -dr com.apple.quarantine "/Applications/Vibe Coding手持输入助手.app"
 ```
 
 然后右键 App，选择“打开”，并在系统设置中开启辅助功能权限。
+
+## 按钮与操作方式
+
+StickS3 手持硬件有三个主要按键位置，其中左侧电源键不参与日常输入控制。
+
+| 硬件按钮 | 操作方式 | 作用 |
+| --- | --- | --- |
+| 右侧按钮 | 单击一次 | 打开或切回设置里选择的目标软件，例如 Codex、Claude、Kimi 或自定义 App。 |
+| 正面蓝色按钮 | 按住不放 | 触发语音输入。默认对应 Mac 上的 `Fn` 按住语音，也可以在 App 里改成自定义快捷键。 |
+| 正面蓝色按钮 | 松开 | 结束语音输入。 |
+| 正面蓝色按钮 | 快速双击 | 发送当前输入内容。发送方式可在 App 里选择 `Return` 或 `Command + Return`。 |
+| 左侧按钮 | 长按/电源相关操作 | 作为设备电源/系统按键使用，当前软件不把它作为输入控制键。 |
+
+推荐使用流程：
+
+1. 在 App 里选择目标软件，例如 `Codex`。
+2. 确认辅助功能权限已开启，并在蓝牙里连接 `Vibe Coding Remote`。
+3. 在任何桌面按右侧按钮，切回目标软件。
+4. 按住正面蓝色按钮说话，松开后结束语音输入。
+5. 检查文字无误后，双击正面蓝色按钮发送。
+
+硬件屏幕会显示连接状态、当前动作和设备电量。电脑端 App 设置面板也会显示设备电量，默认约每 30 秒刷新一次。
 
 ## 适用平台
 
@@ -91,8 +113,8 @@ scripts/build-app.sh
 
 ```text
 .build/app/Vibe Coding手持输入助手.app
-release/VibeCodingHandInputAssistant-0.1.0/Vibe Coding手持输入助手.app
-release/VibeCodingHandInputAssistant-0.1.0.zip
+release/VibeCodingHandInputAssistant-0.1.1/Vibe Coding手持输入助手.app
+release/VibeCodingHandInputAssistant-0.1.1.zip
 ```
 
 ## 构建 DMG
@@ -104,7 +126,7 @@ scripts/build-dmg.sh
 构建产物位于：
 
 ```text
-release/VibeCodingHandInputAssistant-0.1.0.dmg
+release/VibeCodingHandInputAssistant-0.1.1.dmg
 ```
 
 当前版本使用 ad-hoc 签名，不做 Apple Developer ID 公证。首次在朋友电脑打开时，macOS 仍可能出现安全提示。

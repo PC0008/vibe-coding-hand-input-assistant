@@ -11,6 +11,7 @@ from docx.shared import Inches, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "Vibe Coding手持输入助手-Mac安装与常见提示处理.docx"
+VERSION = "0.1.1"
 
 
 def set_cell_shading(cell, fill):
@@ -156,7 +157,7 @@ def build():
 
     add_heading(doc, "一、标准安装流程")
     add_steps(doc, [
-        "下载 VibeCodingHandInputAssistant-0.1.0.dmg。",
+        f"下载 VibeCodingHandInputAssistant-{VERSION}.dmg。",
         "双击打开 DMG。",
         "把“Vibe Coding手持输入助手”拖到 Applications / 应用程序。",
         "到“应用程序”里右键点击 App，选择“打开”。不要第一次直接双击。",
@@ -195,7 +196,53 @@ def build():
         "macOS 可能弹出键盘设置助理，可以关闭或跳过。"
     ])
 
-    add_heading(doc, "五、一键烧录注意事项")
+    add_heading(doc, "五、硬件按钮与操作方式")
+    doc.add_paragraph("StickS3 手持硬件连接成功后，按键作用如下：")
+    button_table = doc.add_table(rows=1, cols=3)
+    button_table.style = "Table Grid"
+    button_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    hdr = button_table.rows[0].cells
+    hdr[0].text = "硬件按钮"
+    hdr[1].text = "操作方式"
+    hdr[2].text = "作用"
+    for cell in hdr:
+        set_cell_shading(cell, "E8EEF5")
+        set_cell_margins(cell)
+        for p in cell.paragraphs:
+            for r in p.runs:
+                r.bold = True
+    button_rows = [
+        ("右侧按钮", "单击一次", "打开或切回 App 设置里的目标软件，例如 Codex、Claude、Kimi 或自定义 App。"),
+        ("正面蓝色按钮", "按住不放", "触发语音输入。默认对应 Mac 的按住 Fn 语音，也可以在 App 里设置自定义快捷键。"),
+        ("正面蓝色按钮", "松开", "结束语音输入。"),
+        ("正面蓝色按钮", "快速双击", "发送当前输入内容。发送方式可选择 Return 或 Command + Return。"),
+        ("左侧按钮", "电源相关操作", "当前不作为输入控制键使用。"),
+    ]
+    for left, middle, right in button_rows:
+        cells = button_table.add_row().cells
+        cells[0].text = left
+        cells[1].text = middle
+        cells[2].text = right
+        for cell in cells:
+            set_cell_margins(cell)
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+    set_table_width(button_table, [1.35, 1.35, 3.65])
+
+    doc.add_paragraph("推荐操作流程：")
+    add_steps(doc, [
+        "在 App 里选择目标软件，例如 Codex。",
+        "确认辅助功能权限已开启，并在蓝牙里连接 Vibe Coding Remote。",
+        "在任意桌面按右侧按钮，切回目标软件。",
+        "按住正面蓝色按钮说话，松开结束语音输入。",
+        "确认文字无误后，双击正面蓝色按钮发送。"
+    ])
+    add_note(
+        doc,
+        "电量与屏幕提示",
+        "硬件屏幕会显示连接状态、当前动作和设备电量。电脑端 App 设置面板也会显示电量，默认约每 30 秒刷新一次。"
+    )
+
+    add_heading(doc, "六、一键烧录注意事项")
     add_bullets(doc, [
         "使用能传数据的 USB 线，不要只用充电线。",
         "烧录过程中不要拔线，不要让电脑睡眠。",
@@ -203,7 +250,7 @@ def build():
         "烧录成功日志里会出现 Hash of data verified。"
     ])
 
-    add_heading(doc, "六、常见问题速查")
+    add_heading(doc, "七、常见问题速查")
     table = doc.add_table(rows=1, cols=2)
     table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -233,7 +280,7 @@ def build():
             cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
     set_table_width(table, [2.0, 4.35])
 
-    add_heading(doc, "七、给测试用户的短版说明")
+    add_heading(doc, "八、给测试用户的短版说明")
     doc.add_paragraph("可以直接复制下面这段发给朋友：")
     add_command(
         doc,
@@ -242,7 +289,7 @@ def build():
         "然后右键 App 点打开，并在系统设置 -> 隐私与安全性 -> 辅助功能里打开它。"
     )
 
-    add_heading(doc, "八、作者信息")
+    add_heading(doc, "九、作者信息")
     doc.add_paragraph("作者：智多星")
     doc.add_paragraph("个人微信：369076317")
 

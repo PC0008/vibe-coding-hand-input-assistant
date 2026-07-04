@@ -15,9 +15,9 @@ let package = Package(
             name: "VibeHandInputAssistant",
             linkerSettings: [
                 .linkedFramework("AppKit"),
-                .linkedFramework("ApplicationServices")
+                .linkedFramework("ApplicationServices"),
+                .linkedFramework("CoreBluetooth")
             ]
         )
     ]
 )
-

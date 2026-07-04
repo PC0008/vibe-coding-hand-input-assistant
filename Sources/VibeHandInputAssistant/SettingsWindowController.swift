@@ -27,6 +27,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var permissionRefreshTimer: Timer?
     private var batteryRefreshTimer: Timer?
     private var isRefreshingBattery = false
+    private var batteryRefreshRequestID = 0
     private var shortcutRecordingTimer: Timer?
     private var shortcutMonitor: Any?
     private var recordedShortcut: KeyboardShortcut?
@@ -305,7 +306,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     private func startBatteryRefreshTimer() {
         batteryRefreshTimer?.invalidate()
-        batteryRefreshTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: true) { [weak self] _ in
+        batteryRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.refreshBatteryStatus()
             }
@@ -318,14 +319,35 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         }
 
         isRefreshingBattery = true
+        batteryRefreshRequestID += 1
+        let requestID = batteryRefreshRequestID
         refreshBatteryButton.isEnabled = false
         batteryDetailLabel.stringValue = "正在读取..."
 
         Task.detached(priority: .utility) {
             let state = RemoteBatteryReader.read()
             await MainActor.run {
+                guard self.batteryRefreshRequestID == requestID else {
+                    return
+                }
                 self.applyBatteryState(state)
             }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+            guard let self,
+                  self.isRefreshingBattery,
+                  self.batteryRefreshRequestID == requestID else {
+                return
+            }
+            self.batteryRefreshRequestID += 1
+            self.applyBatteryState(
+                RemoteBatteryState(
+                    percentage: nil,
+                    isDevicePresent: true,
+                    source: "读取超时，请重试"
+                )
+            )
         }
     }
 
