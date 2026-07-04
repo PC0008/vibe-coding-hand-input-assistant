@@ -11,7 +11,7 @@ from docx.shared import Inches, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "Vibe Coding手持输入助手-Mac安装与常见提示处理.docx"
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 
 
 def set_cell_shading(cell, fill):
@@ -239,7 +239,7 @@ def build():
     add_note(
         doc,
         "电量与屏幕提示",
-        "硬件屏幕会显示连接状态、当前动作和大号电量条。电脑端 App 不再显示设备电量，电量以 StickS3 屏幕为准。v0.1.3 调整了固件屏幕布局，升级后需要重新烧录 StickS3。"
+        "硬件屏幕会显示连接状态、当前动作和大号电量条。电脑端 App 不再显示设备电量，电量以 StickS3 屏幕为准。v0.1.4 将屏幕中间状态文字整体下移，升级后需要重新烧录 StickS3。"
     )
 
     add_heading(doc, "六、一键烧录注意事项")

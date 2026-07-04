@@ -194,9 +194,9 @@ void drawStatus(const char* line1, const char* line2 = "", bool force = false) {
   M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.setTextDatum(middle_center);
   M5.Display.setFont(&fonts::efontCN_24);
-  M5.Display.drawString(line1, M5.Display.width() / 2, 40);
+  M5.Display.drawString(line1, M5.Display.width() / 2, 48);
   M5.Display.setFont(&fonts::efontCN_16);
-  M5.Display.drawString(line2, M5.Display.width() / 2, 65);
+  M5.Display.drawString(line2, M5.Display.width() / 2, 72);
 }
 
 void sendKeyReport(uint8_t usage) {

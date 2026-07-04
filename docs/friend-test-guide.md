@@ -5,7 +5,7 @@
 当前测试包：
 
 ```text
-release/VibeCodingHandInputAssistant-0.1.3.dmg
+release/VibeCodingHandInputAssistant-0.1.4.dmg
 ```
 
 朋友打开 DMG 后会看到：
@@ -78,7 +78,7 @@ Vibe Coding Remote
 
 ## 固件烧录
 
-v0.1.3 调整了 StickS3 屏幕电量条和状态文字位置。升级 App 后，需要把 StickS3 用 USB 线连接到电脑，在 App 设置页的“设备烧录”区域检测到串口后点“一键烧录”。烧录完成后拔掉 USB 线，再到蓝牙里连接 `Vibe Coding Remote`。
+v0.1.4 将 StickS3 屏幕中间状态文字整体下移，让它和顶部电量条保持更舒服的距离。升级 App 后，需要把 StickS3 用 USB 线连接到电脑，在 App 设置页的“设备烧录”区域检测到串口后点“一键烧录”。烧录完成后拔掉 USB 线，再到蓝牙里连接 `Vibe Coding Remote`。
 
 ## 注意
 
