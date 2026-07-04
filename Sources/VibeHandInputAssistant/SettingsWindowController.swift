@@ -1,7 +1,7 @@
 import AppKit
 
 @MainActor
-final class SettingsWindowController: NSWindowController {
+final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let settings: SettingsStore
     private let onSave: () -> Void
 
@@ -11,6 +11,7 @@ final class SettingsWindowController: NSWindowController {
     private let sendModePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let voiceModePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let permissionLabel = NSTextField(labelWithString: "")
+    private var permissionRefreshTimer: Timer?
 
     init(settings: SettingsStore, onSave: @escaping () -> Void) {
         self.settings = settings
@@ -26,6 +27,7 @@ final class SettingsWindowController: NSWindowController {
         window.center()
 
         super.init(window: window)
+        window.delegate = self
         window.contentView = buildContentView()
         loadValues()
     }
@@ -37,6 +39,12 @@ final class SettingsWindowController: NSWindowController {
     override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
         refreshPermissionStatus()
+        startPermissionRefreshTimer()
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        permissionRefreshTimer?.invalidate()
+        permissionRefreshTimer = nil
     }
 
     private func buildContentView() -> NSView {
@@ -149,9 +157,18 @@ final class SettingsWindowController: NSWindowController {
         customBundleIDField.isEnabled = isCustom
     }
 
-    private func refreshPermissionStatus() {
+    func refreshPermissionStatus() {
         permissionLabel.stringValue = AccessibilityManager.isTrusted ? "已开启" : "未开启"
         permissionLabel.textColor = AccessibilityManager.isTrusted ? .systemGreen : .systemRed
+    }
+
+    private func startPermissionRefreshTimer() {
+        permissionRefreshTimer?.invalidate()
+        permissionRefreshTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.refreshPermissionStatus()
+            }
+        }
     }
 
     @objc private func openPermissionSettings() {
@@ -168,6 +185,20 @@ final class SettingsWindowController: NSWindowController {
     @objc private func testTarget() {
         saveValues()
         AppActions(settings: settings).openTargetApp()
+    }
+
+    @objc private func testSend() {
+        saveValues()
+        AppActions(settings: settings).sendMessage()
+    }
+
+    @objc private func testVoice() {
+        saveValues()
+        let actions = AppActions(settings: settings)
+        actions.voiceDown()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            actions.voiceUp()
+        }
     }
 
     private func permissionRow() -> NSView {
@@ -187,10 +218,14 @@ final class SettingsWindowController: NSWindowController {
         stack.spacing = 10
 
         let testButton = NSButton(title: "测试目标软件", target: self, action: #selector(testTarget))
+        let sendButton = NSButton(title: "测试发送", target: self, action: #selector(testSend))
+        let voiceButton = NSButton(title: "测试语音", target: self, action: #selector(testVoice))
         let saveButton = NSButton(title: "保存", target: self, action: #selector(saveAndClose))
         saveButton.keyEquivalent = "\r"
 
         stack.addArrangedSubview(testButton)
+        stack.addArrangedSubview(sendButton)
+        stack.addArrangedSubview(voiceButton)
         stack.addArrangedSubview(saveButton)
         return stack
     }
@@ -224,4 +259,3 @@ final class SettingsWindowController: NSWindowController {
         return text
     }
 }
-

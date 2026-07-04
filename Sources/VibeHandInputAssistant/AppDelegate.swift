@@ -100,6 +100,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refreshPermissionAndHotkeys() {
         let trusted = AccessibilityManager.isTrusted
+        settingsWindowController?.refreshPermissionStatus()
+
         if trusted != wasAccessibilityTrusted {
             wasAccessibilityTrusted = trusted
             if trusted {
