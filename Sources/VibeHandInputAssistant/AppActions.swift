@@ -43,8 +43,11 @@ final class AppActions {
         case .fn:
             InputSimulator.functionDown()
         case .shortcut:
-            // Placeholder for the next milestone. Keep Fn as the safe default.
-            InputSimulator.functionDown()
+            if let shortcut = settings.customVoiceShortcut {
+                InputSimulator.shortcutDown(shortcut)
+            } else {
+                InputSimulator.functionDown()
+            }
         }
     }
 
@@ -53,7 +56,11 @@ final class AppActions {
         case .fn:
             InputSimulator.functionUp()
         case .shortcut:
-            InputSimulator.functionUp()
+            if let shortcut = settings.customVoiceShortcut {
+                InputSimulator.shortcutUp(shortcut)
+            } else {
+                InputSimulator.functionUp()
+            }
         }
     }
 

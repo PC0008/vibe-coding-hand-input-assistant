@@ -46,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             statusItem?.button?.title = "V"
         }
-        statusItem?.button?.toolTip = "Vibe 手持输入助手"
+        statusItem?.button?.toolTip = "Vibe Coding手持输入助手"
         rebuildMenu()
     }
 
@@ -79,9 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "测试：语音 1 秒", action: #selector(testVoice), keyEquivalent: ""))
 
         menu.addItem(.separator())
-        let firmwareItem = NSMenuItem(title: "刷入遥控器固件（下一阶段）", action: nil, keyEquivalent: "")
-        firmwareItem.isEnabled = false
-        menu.addItem(firmwareItem)
+        menu.addItem(NSMenuItem(title: "打开烧录面板...", action: #selector(openSettings), keyEquivalent: ""))
 
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q"))

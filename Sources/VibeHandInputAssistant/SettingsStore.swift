@@ -126,6 +126,18 @@ final class SettingsStore {
         set { defaults.set(newValue.rawValue, forKey: Keys.voiceMode) }
     }
 
+    var customVoiceShortcut: KeyboardShortcut? {
+        get {
+            guard let rawValue = defaults.string(forKey: Keys.customVoiceShortcut) else {
+                return nil
+            }
+            return KeyboardShortcut(storageValue: rawValue)
+        }
+        set {
+            defaults.set(newValue?.storageValue, forKey: Keys.customVoiceShortcut)
+        }
+    }
+
     var selectedTarget: TargetAppPreset {
         guard targetPresetID == "custom" else {
             return SettingsStore.targetPresets.first { $0.id == targetPresetID } ?? SettingsStore.targetPresets[0]

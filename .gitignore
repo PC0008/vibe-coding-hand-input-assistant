@@ -3,4 +3,4 @@
 DerivedData/
 release/
 *.xcuserstate
-
+Firmware/**/.pio/

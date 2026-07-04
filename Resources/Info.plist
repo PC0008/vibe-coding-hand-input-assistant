@@ -9,11 +9,11 @@
   <key>CFBundleIconFile</key>
   <string>AppIcon</string>
   <key>CFBundleIdentifier</key>
-  <string>com.zhiduoxing.vibe-hand-input-assistant</string>
+  <string>com.zhiduoxing.vibe-coding-hand-input-assistant</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Vibe 手持输入助手</string>
+  <string>Vibe Coding手持输入助手</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

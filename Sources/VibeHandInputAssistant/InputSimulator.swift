@@ -15,6 +15,14 @@ enum InputSimulator {
         postKey(keyCode, keyDown: false, flags: flags)
     }
 
+    static func shortcutDown(_ shortcut: KeyboardShortcut) {
+        postKey(shortcut.keyCode, keyDown: true, flags: shortcut.modifierFlags)
+    }
+
+    static func shortcutUp(_ shortcut: KeyboardShortcut) {
+        postKey(shortcut.keyCode, keyDown: false, flags: shortcut.modifierFlags)
+    }
+
     static func functionDown() {
         postKey(KeyCodes.function, keyDown: true, flags: .maskSecondaryFn)
     }
@@ -32,4 +40,3 @@ enum InputSimulator {
         event.post(tap: .cghidEventTap)
     }
 }
-
