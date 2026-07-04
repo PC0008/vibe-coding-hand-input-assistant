@@ -16,7 +16,7 @@ constexpr uint8_t HID_F15 = 0x6A;
 constexpr uint32_t kVoiceHoldThresholdMs = 180;
 constexpr uint32_t kDoubleClickWindowMs = 360;
 constexpr uint32_t kDebounceMs = 25;
-constexpr uint32_t kBatteryUpdateMs = 60000;
+constexpr uint32_t kBatteryUpdateMs = 15000;
 
 BLEHIDDevice* hid = nullptr;
 BLECharacteristic* inputReport = nullptr;
@@ -112,19 +112,19 @@ bool updateBatteryLevel(bool force = false) {
 }
 
 void drawBatteryBadge() {
-  char batteryText[12];
+  char batteryText[20];
   const int level = lastBatteryPercent >= 0 ? lastBatteryPercent : readBatteryPercent();
   if (level >= 0) {
-    snprintf(batteryText, sizeof(batteryText), "%d%%", level);
+    snprintf(batteryText, sizeof(batteryText), "电量 %d%%", level);
   } else {
-    snprintf(batteryText, sizeof(batteryText), "--%%");
+    snprintf(batteryText, sizeof(batteryText), "电量 --%%");
   }
 
-  M5.Display.fillRect(M5.Display.width() - 44, 0, 44, 14, TFT_BLACK);
+  M5.Display.fillRect(0, 0, M5.Display.width(), 18, TFT_BLACK);
+  M5.Display.setFont(&fonts::efontCN_12);
   M5.Display.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Display.setTextDatum(top_right);
-  M5.Display.setTextSize(1);
-  M5.Display.drawString(batteryText, M5.Display.width() - 4, 3);
+  M5.Display.drawString(batteryText, M5.Display.width() - 6, 3);
 }
 
 void drawStatus(const char* line1, const char* line2 = "") {
@@ -132,15 +132,15 @@ void drawStatus(const char* line1, const char* line2 = "") {
   drawBatteryBadge();
   M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.setTextDatum(middle_center);
-  M5.Display.setTextSize(2);
+  M5.Display.setFont(&fonts::efontCN_16);
   M5.Display.drawString(line1, M5.Display.width() / 2, M5.Display.height() / 2 - 14);
-  M5.Display.setTextSize(1);
+  M5.Display.setFont(&fonts::efontCN_12);
   M5.Display.drawString(line2, M5.Display.width() / 2, M5.Display.height() / 2 + 18);
 }
 
 void sendKeyReport(uint8_t usage) {
   if (!bleConnected || inputReport == nullptr) {
-    drawStatus("BT PAIR", kDeviceName);
+    drawStatus("等待连接", kDeviceName);
     return;
   }
 
@@ -194,7 +194,7 @@ void startBleKeyboard() {
   advertising->setMinPreferred(0x06);
   advertising->setMaxPreferred(0x12);
   advertising->start();
-  drawStatus("BLE ON", kDeviceName);
+  drawStatus("蓝牙已开启", kDeviceName);
 }
 
 void startVoice() {
@@ -204,7 +204,7 @@ void startVoice() {
   voiceActive = true;
   waitingSecondClick = false;
   sendKeyReport(HID_F14);
-  drawStatus("VOICE", "hold blue");
+  drawStatus("语音输入", "松开结束");
 }
 
 void stopVoice() {
@@ -213,17 +213,17 @@ void stopVoice() {
   }
   releaseKeys();
   voiceActive = false;
-  drawStatus(bleConnected ? "BT OK" : "BT PAIR", "right: target");
+  drawStatus(bleConnected ? "已连接" : "等待连接", "右键打开软件");
 }
 
 void sendCodex() {
   tapKey(HID_F15);
-  drawStatus("SEND", "blue double");
+  drawStatus("已发送", "蓝键双击");
 }
 
 void openCodex() {
   tapKey(HID_F13);
-  drawStatus("VIBE", "target app");
+  drawStatus("打开软件", "目标应用");
 }
 
 void handleBlueButton(bool down, uint32_t now) {
@@ -258,7 +258,7 @@ void handleBlueButton(bool down, uint32_t now) {
 
   if (waitingSecondClick && now - blueUpAt > kDoubleClickWindowMs) {
     waitingSecondClick = false;
-    drawStatus(bleConnected ? "BT OK" : "BT PAIR", "hold blue / dbl send");
+    drawStatus(bleConnected ? "已连接" : "等待连接", "按住语音 双击发送");
   }
 }
 
@@ -286,7 +286,7 @@ void setup() {
 
   M5.Display.setRotation(1);
   M5.Display.setBrightness(160);
-  drawStatus("BT PAIR", kDeviceName);
+  drawStatus("等待连接", kDeviceName);
 
   startBleKeyboard();
 }
@@ -302,7 +302,7 @@ void loop() {
 
   if (bleStateChanged) {
     bleStateChanged = false;
-    drawStatus(bleConnected ? "BT OK" : "BT PAIR", bleConnected ? "ready" : kDeviceName);
+    drawStatus(bleConnected ? "已连接" : "等待连接", bleConnected ? "可以使用" : kDeviceName);
   }
 
   if (updateBatteryLevel()) {
