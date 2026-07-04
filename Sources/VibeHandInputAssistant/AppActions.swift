@@ -18,17 +18,23 @@ final class AppActions {
                 return
             }
 
-            runOpen(arguments: ["-b", target.bundleIdentifier])
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                NSRunningApplication.runningApplications(withBundleIdentifier: target.bundleIdentifier)
-                    .first?
-                    .activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+            if runOpen(arguments: ["-b", target.bundleIdentifier]) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    NSRunningApplication.runningApplications(withBundleIdentifier: target.bundleIdentifier)
+                        .first?
+                        .activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+                }
+                return
             }
-            return
         }
 
         if !target.appName.isEmpty {
-            runOpen(arguments: ["-a", target.appName])
+            _ = runOpen(arguments: ["-a", target.appName])
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                if let runningApp = NSWorkspace.shared.runningApplications.first(where: { $0.localizedName == target.appName }) {
+                    runningApp.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+                }
+            }
         }
     }
 
@@ -60,11 +66,16 @@ final class AppActions {
         }
     }
 
-    private func runOpen(arguments: [String]) {
+    private func runOpen(arguments: [String]) -> Bool {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         process.arguments = arguments
-        try? process.run()
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus == 0
+        } catch {
+            return false
+        }
     }
 }
-

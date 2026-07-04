@@ -9,23 +9,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var settingsWindowController: SettingsWindowController?
     private var hotkeyTapStarted = false
+    private var permissionPollTimer: Timer?
+    private var wasAccessibilityTrusted = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
+        wasAccessibilityTrusted = AccessibilityManager.isTrusted
         startHotkeys()
+        startPermissionMonitor()
 
         if !AccessibilityManager.isTrusted {
             AccessibilityManager.requestPermissionPrompt()
         }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            self?.openSettings()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        permissionPollTimer?.invalidate()
         hotkeyController.stop()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openSettings()
+        return true
     }
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem?.button?.title = "Vibe"
+        statusItem?.button?.title = "V"
+        statusItem?.button?.toolTip = "Vibe 手持输入助手"
         rebuildMenu()
     }
 
@@ -69,8 +84,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startHotkeys() {
+        hotkeyController.stop()
         hotkeyTapStarted = hotkeyController.start()
         rebuildMenu()
+    }
+
+    private func startPermissionMonitor() {
+        permissionPollTimer?.invalidate()
+        permissionPollTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.refreshPermissionAndHotkeys()
+            }
+        }
+    }
+
+    private func refreshPermissionAndHotkeys() {
+        let trusted = AccessibilityManager.isTrusted
+        if trusted != wasAccessibilityTrusted {
+            wasAccessibilityTrusted = trusted
+            if trusted {
+                startHotkeys()
+            } else {
+                hotkeyController.stop()
+                hotkeyTapStarted = false
+                rebuildMenu()
+            }
+            return
+        }
+
+        if trusted && !hotkeyTapStarted {
+            startHotkeys()
+        }
     }
 
     @objc private func restartHotkeys() {
@@ -114,4 +158,3 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
 }
-
