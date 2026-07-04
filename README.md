@@ -38,6 +38,12 @@ https://github.com/PC0008/vibe-coding-hand-input-assistant/releases
 docs/Vibe Coding手持输入助手-Mac安装与常见提示处理.docx
 ```
 
+也可以直接下载在线 Word 教程：
+
+```text
+https://github.com/PC0008/vibe-coding-hand-input-assistant/releases/download/v0.1.1/VibeCodingHandInputAssistant-Mac-Install-Guide-0.1.1.docx
+```
+
 常用处理命令：
 
 ```bash
