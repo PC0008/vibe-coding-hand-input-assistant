@@ -19,8 +19,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let flashLogTextView = NSTextView(frame: .zero)
     private let flashButton = NSButton(title: "一键烧录", target: nil, action: nil)
     private let refreshPortsButton = NSButton(title: "刷新设备", target: nil, action: nil)
+    private let batteryLevelIndicator = NSLevelIndicator(frame: .zero)
+    private let batteryPercentLabel = NSTextField(labelWithString: "未检测到")
+    private let batteryDetailLabel = NSTextField(labelWithString: "请先连接 Vibe Coding Remote")
+    private let refreshBatteryButton = NSButton(title: "刷新电量", target: nil, action: nil)
 
     private var permissionRefreshTimer: Timer?
+    private var batteryRefreshTimer: Timer?
+    private var isRefreshingBattery = false
     private var shortcutRecordingTimer: Timer?
     private var shortcutMonitor: Any?
     private var recordedShortcut: KeyboardShortcut?
@@ -54,12 +60,16 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         super.showWindow(sender)
         refreshPermissionStatus()
         refreshSerialPorts()
+        refreshBatteryStatus()
         startPermissionRefreshTimer()
+        startBatteryRefreshTimer()
     }
 
     func windowWillClose(_ notification: Notification) {
         permissionRefreshTimer?.invalidate()
         permissionRefreshTimer = nil
+        batteryRefreshTimer?.invalidate()
+        batteryRefreshTimer = nil
         stopShortcutRecording()
         AppActions(settings: settings).releaseKeys()
     }
@@ -85,6 +95,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         stack.addArrangedSubview(separator(width: 600))
         stack.addArrangedSubview(sectionTitle("基础设置"))
         stack.addArrangedSubview(row(label: "辅助功能", control: permissionRow()))
+        stack.addArrangedSubview(row(label: "设备电量", control: batteryRow()))
         stack.addArrangedSubview(row(label: "目标软件", control: targetPopup))
         stack.addArrangedSubview(row(label: "自定义名称", control: customAppNameField))
         stack.addArrangedSubview(row(label: "Bundle ID", control: customBundleIDField))
@@ -193,11 +204,25 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         refreshPortsButton.action = #selector(refreshSerialPorts)
         flashButton.target = self
         flashButton.action = #selector(startFlash)
+        refreshBatteryButton.target = self
+        refreshBatteryButton.action = #selector(refreshBatteryStatus)
 
         flashLogTextView.isEditable = false
         flashLogTextView.isSelectable = true
         flashLogTextView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
         flashLogTextView.textColor = .secondaryLabelColor
+
+        batteryLevelIndicator.minValue = 0
+        batteryLevelIndicator.maxValue = 100
+        batteryLevelIndicator.warningValue = 20
+        batteryLevelIndicator.criticalValue = 10
+        batteryLevelIndicator.levelIndicatorStyle = .continuousCapacity
+        batteryLevelIndicator.isEditable = false
+        batteryLevelIndicator.isEnabled = false
+        batteryPercentLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        batteryPercentLabel.textColor = .secondaryLabelColor
+        batteryDetailLabel.font = .systemFont(ofSize: 12)
+        batteryDetailLabel.textColor = .secondaryLabelColor
     }
 
     private func loadValues() {
@@ -276,6 +301,50 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 self?.refreshPermissionStatus()
             }
         }
+    }
+
+    private func startBatteryRefreshTimer() {
+        batteryRefreshTimer?.invalidate()
+        batteryRefreshTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.refreshBatteryStatus()
+            }
+        }
+    }
+
+    @objc private func refreshBatteryStatus() {
+        guard !isRefreshingBattery else {
+            return
+        }
+
+        isRefreshingBattery = true
+        refreshBatteryButton.isEnabled = false
+        batteryDetailLabel.stringValue = "正在读取..."
+
+        Task.detached(priority: .utility) {
+            let state = RemoteBatteryReader.read()
+            await MainActor.run {
+                self.applyBatteryState(state)
+            }
+        }
+    }
+
+    private func applyBatteryState(_ state: RemoteBatteryState) {
+        isRefreshingBattery = false
+        refreshBatteryButton.isEnabled = true
+        batteryPercentLabel.stringValue = state.displayText
+        batteryDetailLabel.stringValue = state.detailText
+
+        if let percentage = state.percentage {
+            batteryLevelIndicator.doubleValue = Double(percentage)
+            batteryLevelIndicator.isEnabled = true
+            batteryPercentLabel.textColor = percentage <= 20 ? .systemOrange : .labelColor
+            return
+        }
+
+        batteryLevelIndicator.doubleValue = 0
+        batteryLevelIndicator.isEnabled = false
+        batteryPercentLabel.textColor = state.isDevicePresent ? .systemOrange : .secondaryLabelColor
     }
 
     @objc private func openPermissionSettings() {
@@ -428,6 +497,21 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         let button = NSButton(title: "打开权限设置", target: self, action: #selector(openPermissionSettings))
         stack.addArrangedSubview(permissionLabel)
         stack.addArrangedSubview(button)
+        return stack
+    }
+
+    private func batteryRow() -> NSView {
+        let textStack = NSStackView(views: [batteryPercentLabel, batteryDetailLabel])
+        textStack.orientation = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 2
+
+        let stack = NSStackView(views: [batteryLevelIndicator, textStack, refreshBatteryButton])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 10
+        batteryLevelIndicator.widthAnchor.constraint(equalToConstant: 92).isActive = true
+        textStack.widthAnchor.constraint(equalToConstant: 210).isActive = true
         return stack
     }
 

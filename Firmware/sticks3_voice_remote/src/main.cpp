@@ -16,6 +16,7 @@ constexpr uint8_t HID_F15 = 0x6A;
 constexpr uint32_t kVoiceHoldThresholdMs = 180;
 constexpr uint32_t kDoubleClickWindowMs = 360;
 constexpr uint32_t kDebounceMs = 25;
+constexpr uint32_t kBatteryUpdateMs = 60000;
 
 BLEHIDDevice* hid = nullptr;
 BLECharacteristic* inputReport = nullptr;
@@ -33,6 +34,9 @@ uint32_t lastBlueEdgeAt = 0;
 
 bool sideWasDown = false;
 uint32_t sideEdgeAt = 0;
+
+int lastBatteryPercent = -1;
+uint32_t lastBatteryUpdateAt = 0;
 
 const uint8_t kKeyboardReportMap[] = {
     0x05, 0x01,        // Usage Page (Generic Desktop)
@@ -76,8 +80,56 @@ class ServerCallbacks : public BLEServerCallbacks {
   }
 };
 
+int readBatteryPercent() {
+  int level = M5.Power.getBatteryLevel();
+  if (level < 0) {
+    return -1;
+  }
+  if (level > 100) {
+    return 100;
+  }
+  return level;
+}
+
+bool updateBatteryLevel(bool force = false) {
+  const uint32_t now = millis();
+  if (!force && now - lastBatteryUpdateAt < kBatteryUpdateMs) {
+    return false;
+  }
+
+  lastBatteryUpdateAt = now;
+  const int level = readBatteryPercent();
+  if (level < 0) {
+    return false;
+  }
+
+  const bool changed = (level != lastBatteryPercent);
+  lastBatteryPercent = level;
+  if (hid) {
+    hid->setBatteryLevel(static_cast<uint8_t>(level));
+  }
+  return changed;
+}
+
+void drawBatteryBadge() {
+  char batteryText[12];
+  const int level = lastBatteryPercent >= 0 ? lastBatteryPercent : readBatteryPercent();
+  if (level >= 0) {
+    snprintf(batteryText, sizeof(batteryText), "%d%%", level);
+  } else {
+    snprintf(batteryText, sizeof(batteryText), "--%%");
+  }
+
+  M5.Display.fillRect(M5.Display.width() - 44, 0, 44, 14, TFT_BLACK);
+  M5.Display.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+  M5.Display.setTextDatum(top_right);
+  M5.Display.setTextSize(1);
+  M5.Display.drawString(batteryText, M5.Display.width() - 4, 3);
+}
+
 void drawStatus(const char* line1, const char* line2 = "") {
   M5.Display.fillScreen(TFT_BLACK);
+  drawBatteryBadge();
   M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.setTextDatum(middle_center);
   M5.Display.setTextSize(2);
@@ -133,7 +185,7 @@ void startBleKeyboard() {
   hid->hidInfo(0x00, 0x02);
   hid->reportMap((uint8_t*)kKeyboardReportMap, sizeof(kKeyboardReportMap));
   hid->startServices();
-  hid->setBatteryLevel(90);
+  updateBatteryLevel(true);
 
   advertising = BLEDevice::getAdvertising();
   advertising->setAppearance(HID_KEYBOARD);
@@ -251,6 +303,10 @@ void loop() {
   if (bleStateChanged) {
     bleStateChanged = false;
     drawStatus(bleConnected ? "BT OK" : "BT PAIR", bleConnected ? "ready" : kDeviceName);
+  }
+
+  if (updateBatteryLevel()) {
+    drawBatteryBadge();
   }
 
   delay(5);
