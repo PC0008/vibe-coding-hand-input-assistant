@@ -70,6 +70,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         scrollView.hasVerticalScroller = true
         scrollView.borderType = .noBorder
 
+        let documentView = NSView()
+        documentView.translatesAutoresizingMaskIntoConstraints = false
+
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -96,7 +99,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         stack.addArrangedSubview(separator(width: 600))
         stack.addArrangedSubview(authorText())
 
-        scrollView.documentView = stack
+        documentView.addSubview(stack)
+        scrollView.documentView = documentView
         container.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
@@ -104,11 +108,16 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             scrollView.topAnchor.constraint(equalTo: container.topAnchor),
             scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            stack.leadingAnchor.constraint(equalTo: scrollView.contentView.leadingAnchor, constant: 32),
-            stack.trailingAnchor.constraint(equalTo: scrollView.contentView.trailingAnchor, constant: -32),
-            stack.topAnchor.constraint(equalTo: scrollView.contentView.topAnchor, constant: 24),
-            stack.bottomAnchor.constraint(equalTo: scrollView.contentView.bottomAnchor, constant: -24),
-            stack.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor, constant: -64)
+            documentView.leadingAnchor.constraint(equalTo: scrollView.contentView.leadingAnchor),
+            documentView.trailingAnchor.constraint(equalTo: scrollView.contentView.trailingAnchor),
+            documentView.topAnchor.constraint(equalTo: scrollView.contentView.topAnchor),
+            documentView.bottomAnchor.constraint(equalTo: scrollView.contentView.bottomAnchor),
+            documentView.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
+            stack.leadingAnchor.constraint(equalTo: documentView.leadingAnchor, constant: 32),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: documentView.trailingAnchor, constant: -32),
+            stack.topAnchor.constraint(equalTo: documentView.topAnchor, constant: 24),
+            stack.bottomAnchor.constraint(equalTo: documentView.bottomAnchor, constant: -24),
+            stack.widthAnchor.constraint(lessThanOrEqualTo: documentView.widthAnchor, constant: -64)
         ])
 
         configureControls()
