@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 APP_NAME="Vibe Coding手持输入助手"
-VERSION="0.1.2"
+VERSION="0.1.3"
 RELEASE_DIR="$ROOT_DIR/release"
 RELEASE_BASENAME="VibeCodingHandInputAssistant-$VERSION"
 APP_PATH="$RELEASE_DIR/$RELEASE_BASENAME/$APP_NAME.app"

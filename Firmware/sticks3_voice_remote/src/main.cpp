@@ -8,8 +8,8 @@
 
 namespace {
 constexpr const char* kDeviceName = "Vibe Coding Remote";
-constexpr const char* kVibeBatteryServiceUUID = "7A8B0001-6D3B-4C1A-8D4F-9E2B5C7A1000";
-constexpr const char* kVibeBatteryLevelUUID = "7A8B0002-6D3B-4C1A-8D4F-9E2B5C7A1000";
+constexpr const char* kVibeBatteryServiceUUID = "7A8B0101-6D3B-4C1A-8D4F-9E2B5C7A1000";
+constexpr const char* kVibeBatteryLevelUUID = "7A8B0102-6D3B-4C1A-8D4F-9E2B5C7A1000";
 
 constexpr uint8_t HID_F13 = 0x68;
 constexpr uint8_t HID_F14 = 0x69;
@@ -165,16 +165,16 @@ void drawBatteryBar() {
 
   const int screenWidth = M5.Display.width();
   const int barX = 44;
-  const int barY = 6;
+  const int barY = 4;
   const int barWidth = 70;
-  const int barHeight = 14;
+  const int barHeight = 12;
   const int fillWidth = level >= 0 ? (barWidth - 4) * level / 100 : 0;
 
-  M5.Display.fillRect(0, 0, screenWidth, 26, TFT_BLACK);
+  M5.Display.fillRect(0, 0, screenWidth, 20, TFT_BLACK);
   M5.Display.setFont(&fonts::efontCN_12);
   M5.Display.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   M5.Display.setTextDatum(top_left);
-  M5.Display.drawString("电量", 6, 7);
+  M5.Display.drawString("电量", 6, 5);
 
   M5.Display.drawRoundRect(barX, barY, barWidth, barHeight, 3, TFT_LIGHTGREY);
   if (fillWidth > 0) {
@@ -184,7 +184,7 @@ void drawBatteryBar() {
   M5.Display.setFont(&fonts::efontCN_16);
   M5.Display.setTextColor(level >= 0 ? batteryColor(level) : TFT_LIGHTGREY, TFT_BLACK);
   M5.Display.setTextDatum(top_right);
-  M5.Display.drawString(percentText, screenWidth - 6, 4);
+  M5.Display.drawString(percentText, screenWidth - 6, 2);
 }
 
 void drawStatus(const char* line1, const char* line2 = "", bool force = false) {
@@ -194,9 +194,9 @@ void drawStatus(const char* line1, const char* line2 = "", bool force = false) {
   M5.Display.setTextColor(TFT_WHITE, TFT_BLACK);
   M5.Display.setTextDatum(middle_center);
   M5.Display.setFont(&fonts::efontCN_24);
-  M5.Display.drawString(line1, M5.Display.width() / 2, 45);
+  M5.Display.drawString(line1, M5.Display.width() / 2, 40);
   M5.Display.setFont(&fonts::efontCN_16);
-  M5.Display.drawString(line2, M5.Display.width() / 2, 68);
+  M5.Display.drawString(line2, M5.Display.width() / 2, 65);
 }
 
 void sendKeyReport(uint8_t usage) {

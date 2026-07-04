@@ -21,19 +21,12 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let refreshPortsButton = NSButton(title: "刷新设备", target: nil, action: nil)
     private let flashToggleButton = NSButton(title: "展开设备烧录", target: nil, action: nil)
     private let flashContentStack = NSStackView()
-    private let batteryLevelIndicator = NSLevelIndicator(frame: .zero)
-    private let batteryPercentLabel = NSTextField(labelWithString: "未检测到")
-    private let batteryDetailLabel = NSTextField(labelWithString: "请先连接 Vibe Coding Remote")
-    private let refreshBatteryButton = NSButton(title: "刷新电量", target: nil, action: nil)
 
     private var permissionRefreshTimer: Timer?
-    private var batteryRefreshTimer: Timer?
-    private var isRefreshingBattery = false
-    private var batteryRefreshRequestID = 0
     private var shortcutRecordingTimer: Timer?
     private var shortcutMonitor: Any?
     private var recordedShortcut: KeyboardShortcut?
-    private var isFlashSectionExpanded = false
+    private var isFlashSectionExpanded = true
 
     init(settings: SettingsStore, onSave: @escaping () -> Void) {
         self.settings = settings
@@ -65,16 +58,12 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         if isFlashSectionExpanded {
             refreshSerialPorts()
         }
-        refreshBatteryStatus()
         startPermissionRefreshTimer()
-        startBatteryRefreshTimer()
     }
 
     func windowWillClose(_ notification: Notification) {
         permissionRefreshTimer?.invalidate()
         permissionRefreshTimer = nil
-        batteryRefreshTimer?.invalidate()
-        batteryRefreshTimer = nil
         stopShortcutRecording()
         AppActions(settings: settings).releaseKeys()
     }
@@ -100,7 +89,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         stack.addArrangedSubview(separator(width: 600))
         stack.addArrangedSubview(sectionTitle("基础设置"))
         stack.addArrangedSubview(row(label: "辅助功能", control: permissionRow()))
-        stack.addArrangedSubview(row(label: "设备电量", control: batteryRow()))
         stack.addArrangedSubview(row(label: "目标软件", control: targetPopup))
         stack.addArrangedSubview(row(label: "自定义名称", control: customAppNameField))
         stack.addArrangedSubview(row(label: "Bundle ID", control: customBundleIDField))
@@ -208,25 +196,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         flashButton.action = #selector(startFlash)
         flashToggleButton.target = self
         flashToggleButton.action = #selector(toggleFlashSection)
-        refreshBatteryButton.target = self
-        refreshBatteryButton.action = #selector(refreshBatteryStatus)
-
         flashLogTextView.isEditable = false
         flashLogTextView.isSelectable = true
         flashLogTextView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
         flashLogTextView.textColor = .secondaryLabelColor
-
-        batteryLevelIndicator.minValue = 0
-        batteryLevelIndicator.maxValue = 100
-        batteryLevelIndicator.warningValue = 20
-        batteryLevelIndicator.criticalValue = 10
-        batteryLevelIndicator.levelIndicatorStyle = .continuousCapacity
-        batteryLevelIndicator.isEditable = false
-        batteryLevelIndicator.isEnabled = false
-        batteryPercentLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        batteryPercentLabel.textColor = .secondaryLabelColor
-        batteryDetailLabel.font = .systemFont(ofSize: 12)
-        batteryDetailLabel.textColor = .secondaryLabelColor
     }
 
     private func loadValues() {
@@ -305,71 +278,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                 self?.refreshPermissionStatus()
             }
         }
-    }
-
-    private func startBatteryRefreshTimer() {
-        batteryRefreshTimer?.invalidate()
-        batteryRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.refreshBatteryStatus()
-            }
-        }
-    }
-
-    @objc private func refreshBatteryStatus() {
-        guard !isRefreshingBattery else {
-            return
-        }
-
-        isRefreshingBattery = true
-        batteryRefreshRequestID += 1
-        let requestID = batteryRefreshRequestID
-        refreshBatteryButton.isEnabled = false
-        batteryDetailLabel.stringValue = "正在读取..."
-
-        Task.detached(priority: .utility) {
-            let state = RemoteBatteryReader.read()
-            await MainActor.run {
-                guard self.batteryRefreshRequestID == requestID else {
-                    return
-                }
-                self.applyBatteryState(state)
-            }
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
-            guard let self,
-                  self.isRefreshingBattery,
-                  self.batteryRefreshRequestID == requestID else {
-                return
-            }
-            self.batteryRefreshRequestID += 1
-            self.applyBatteryState(
-                RemoteBatteryState(
-                    percentage: nil,
-                    isDevicePresent: true,
-                    source: "读取超时，请重试"
-                )
-            )
-        }
-    }
-
-    private func applyBatteryState(_ state: RemoteBatteryState) {
-        isRefreshingBattery = false
-        refreshBatteryButton.isEnabled = true
-        batteryPercentLabel.stringValue = state.displayText
-        batteryDetailLabel.stringValue = state.detailText
-
-        if let percentage = state.percentage {
-            batteryLevelIndicator.doubleValue = Double(percentage)
-            batteryLevelIndicator.isEnabled = true
-            batteryPercentLabel.textColor = percentage <= 20 ? .systemOrange : .labelColor
-            return
-        }
-
-        batteryLevelIndicator.doubleValue = 0
-        batteryLevelIndicator.isEnabled = false
-        batteryPercentLabel.textColor = state.isDevicePresent ? .systemOrange : .secondaryLabelColor
     }
 
     @objc private func openPermissionSettings() {
@@ -525,21 +433,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         return stack
     }
 
-    private func batteryRow() -> NSView {
-        let textStack = NSStackView(views: [batteryPercentLabel, batteryDetailLabel])
-        textStack.orientation = .vertical
-        textStack.alignment = .leading
-        textStack.spacing = 2
-
-        let stack = NSStackView(views: [batteryLevelIndicator, textStack, refreshBatteryButton])
-        stack.orientation = .horizontal
-        stack.alignment = .centerY
-        stack.spacing = 10
-        batteryLevelIndicator.widthAnchor.constraint(equalToConstant: 92).isActive = true
-        textStack.widthAnchor.constraint(equalToConstant: 210).isActive = true
-        return stack
-    }
-
     private func voiceModeRow() -> NSView {
         let stack = NSStackView(views: [voiceModePopup, shortcutLabel, shortcutButton])
         stack.orientation = .horizontal
@@ -563,13 +456,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     private func flashSectionView() -> NSView {
         let title = sectionTitle("设备烧录")
-        let hint = NSTextField(labelWithString: "需要更新手持硬件固件时再展开。")
+        let hint = NSTextField(labelWithString: "插上 USB 线后可直接刷新设备并一键烧录。")
         hint.textColor = .secondaryLabelColor
         hint.font = .systemFont(ofSize: 12)
 
         flashToggleButton.bezelStyle = .rounded
         flashToggleButton.imagePosition = .imageLeading
-        flashToggleButton.image = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: nil)
+        flashToggleButton.title = "收起设备烧录"
+        flashToggleButton.image = NSImage(systemSymbolName: "chevron.up", accessibilityDescription: nil)
 
         let spacer = NSView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -586,7 +480,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         flashContentStack.addArrangedSubview(flashIntroText())
         flashContentStack.addArrangedSubview(row(label: "连接设备", control: flashDeviceRow()))
         flashContentStack.addArrangedSubview(flashLogView())
-        flashContentStack.isHidden = true
+        flashContentStack.isHidden = false
 
         let stack = NSStackView(views: [header, flashContentStack])
         stack.orientation = .vertical

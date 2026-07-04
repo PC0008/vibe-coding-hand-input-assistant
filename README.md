@@ -11,8 +11,7 @@
 - `F14` 按下/松开触发语音输入。
 - `F15` 发送当前输入。
 - 支持录制自定义语音快捷键。
-- 设置界面显示 StickS3 遥控器电量。
-- StickS3 屏幕显示中文状态和电量。
+- StickS3 屏幕显示中文状态和大号电量条。
 - 内置 StickS3 一键烧录工具。
 - 输出可拖到 Applications 的 DMG 安装包。
 
@@ -21,7 +20,7 @@
 Mac 用户可以直接点击下载最新版 DMG：
 
 ```text
-https://github.com/PC0008/vibe-coding-hand-input-assistant/releases/download/v0.1.2/VibeCodingHandInputAssistant-0.1.2.dmg
+https://github.com/PC0008/vibe-coding-hand-input-assistant/releases/download/v0.1.3/VibeCodingHandInputAssistant-0.1.3.dmg
 ```
 
 下载后双击 DMG，把 `Vibe Coding手持输入助手` 拖到 `Applications / 应用程序`。
@@ -41,7 +40,7 @@ docs/Vibe Coding手持输入助手-Mac安装与常见提示处理.docx
 也可以直接下载在线 Word 教程：
 
 ```text
-https://github.com/PC0008/vibe-coding-hand-input-assistant/releases/download/v0.1.2/VibeCodingHandInputAssistant-Mac-Install-Guide-0.1.2.docx
+https://github.com/PC0008/vibe-coding-hand-input-assistant/releases/download/v0.1.3/VibeCodingHandInputAssistant-Mac-Install-Guide-0.1.3.docx
 ```
 
 常用处理命令：
@@ -72,7 +71,7 @@ StickS3 手持硬件有三个主要按键位置，其中左侧电源键不参与
 4. 按住正面蓝色按钮说话，松开后结束语音输入。
 5. 检查文字无误后，双击正面蓝色按钮发送。
 
-硬件屏幕会显示连接状态、当前动作和大号电量条。电脑端 App 设置面板也会显示设备电量，默认约每 30 秒刷新一次。v0.1.2 更新了固件屏幕电量条和电量读取逻辑，升级后需要在 App 里展开“设备烧录”并重新烧录 StickS3。
+硬件屏幕会显示连接状态、当前动作和大号电量条。为了避免 macOS 蓝牙电量缓存误读，电脑端 App 不再显示设备电量；电量以 StickS3 屏幕为准。v0.1.3 调整了固件屏幕布局，升级后需要在 App 里重新烧录 StickS3。
 
 ## 适用平台
 
@@ -119,8 +118,8 @@ scripts/build-app.sh
 
 ```text
 .build/app/Vibe Coding手持输入助手.app
-release/VibeCodingHandInputAssistant-0.1.2/Vibe Coding手持输入助手.app
-release/VibeCodingHandInputAssistant-0.1.2.zip
+release/VibeCodingHandInputAssistant-0.1.3/Vibe Coding手持输入助手.app
+release/VibeCodingHandInputAssistant-0.1.3.zip
 ```
 
 ## 构建 DMG
@@ -132,7 +131,7 @@ scripts/build-dmg.sh
 构建产物位于：
 
 ```text
-release/VibeCodingHandInputAssistant-0.1.2.dmg
+release/VibeCodingHandInputAssistant-0.1.3.dmg
 ```
 
 当前版本使用 ad-hoc 签名，不做 Apple Developer ID 公证。首次在朋友电脑打开时，macOS 仍可能出现安全提示。
