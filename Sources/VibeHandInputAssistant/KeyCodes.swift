@@ -5,7 +5,7 @@ enum KeyCodes {
     static let f14: Int64 = 107
     static let f15: Int64 = 113
 
+    static let escape: UInt16 = 53
     static let returnKey: CGKeyCode = 36
     static let function: CGKeyCode = 63
 }
-

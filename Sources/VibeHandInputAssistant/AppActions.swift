@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 final class AppActions {
     private let settings: SettingsStore
+    private var activeVoiceShortcut: KeyboardShortcut?
 
     init(settings: SettingsStore = .shared) {
         self.settings = settings
@@ -44,9 +45,8 @@ final class AppActions {
             InputSimulator.functionDown()
         case .shortcut:
             if let shortcut = settings.customVoiceShortcut {
+                activeVoiceShortcut = shortcut
                 InputSimulator.shortcutDown(shortcut)
-            } else {
-                InputSimulator.functionDown()
             }
         }
     }
@@ -56,12 +56,19 @@ final class AppActions {
         case .fn:
             InputSimulator.functionUp()
         case .shortcut:
-            if let shortcut = settings.customVoiceShortcut {
+            if let shortcut = activeVoiceShortcut ?? settings.customVoiceShortcut {
                 InputSimulator.shortcutUp(shortcut)
-            } else {
-                InputSimulator.functionUp()
             }
+            activeVoiceShortcut = nil
         }
+    }
+
+    func releaseKeys() {
+        if let activeVoiceShortcut {
+            InputSimulator.shortcutUp(activeVoiceShortcut)
+            self.activeVoiceShortcut = nil
+        }
+        InputSimulator.releaseSafetyKeys()
     }
 
     func sendMessage() {

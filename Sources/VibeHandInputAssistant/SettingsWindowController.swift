@@ -21,6 +21,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let refreshPortsButton = NSButton(title: "刷新设备", target: nil, action: nil)
 
     private var permissionRefreshTimer: Timer?
+    private var shortcutRecordingTimer: Timer?
     private var shortcutMonitor: Any?
     private var recordedShortcut: KeyboardShortcut?
 
@@ -60,6 +61,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         permissionRefreshTimer?.invalidate()
         permissionRefreshTimer = nil
         stopShortcutRecording()
+        AppActions(settings: settings).releaseKeys()
     }
 
     private func buildContentView() -> NSView {
@@ -212,6 +214,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     private func saveValues() {
+        stopShortcutRecording()
         settings.targetPresetID = targetPopup.selectedItem?.representedObject as? String ?? "codex"
         settings.customAppName = customAppNameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         settings.customBundleIdentifier = customBundleIDField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -297,11 +300,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func testVoice() {
+        stopShortcutRecording()
         saveValues()
         let actions = AppActions(settings: settings)
         actions.voiceDown()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             actions.voiceUp()
+            actions.releaseKeys()
         }
     }
 
@@ -312,21 +317,44 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window?.makeFirstResponder(nil)
         shortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
-            Task { @MainActor in
-                self.captureShortcut(from: event)
+            if event.keyCode == KeyCodes.escape {
+                Task { @MainActor in
+                    self.cancelShortcutRecording(message: "已取消")
+                }
+                return nil
             }
-            return nil
+            if let shortcut = KeyboardShortcut.from(event: event) {
+                Task { @MainActor in
+                    self.captureShortcut(shortcut)
+                }
+                return nil
+            }
+            Task { @MainActor in
+                self.shortcutLabel.stringValue = "请按一个非修饰键，例如 Space 或 D"
+            }
+            return event
+        }
+        shortcutRecordingTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                self?.cancelShortcutRecording(message: "录制超时")
+            }
         }
     }
 
-    private func captureShortcut(from event: NSEvent) {
-        guard let shortcut = KeyboardShortcut.from(event: event) else {
-            shortcutLabel.stringValue = "请按一个非修饰键，例如 Space 或 D"
-            return
-        }
+    private func captureShortcut(_ shortcut: KeyboardShortcut) {
         recordedShortcut = shortcut
+        settings.customVoiceShortcut = shortcut
         updateShortcutLabel()
         stopShortcutRecording()
+    }
+
+    private func cancelShortcutRecording(message: String) {
+        stopShortcutRecording()
+        updateShortcutLabel()
+        if recordedShortcut == nil {
+            shortcutLabel.stringValue = message
+            shortcutLabel.textColor = .secondaryLabelColor
+        }
     }
 
     private func stopShortcutRecording() {
@@ -334,6 +362,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             NSEvent.removeMonitor(shortcutMonitor)
         }
         shortcutMonitor = nil
+        shortcutRecordingTimer?.invalidate()
+        shortcutRecordingTimer = nil
     }
 
     @objc private func refreshSerialPorts() {

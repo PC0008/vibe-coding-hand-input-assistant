@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var wasAccessibilityTrusted = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        actions.releaseKeys()
         setupStatusItem()
         wasAccessibilityTrusted = AccessibilityManager.isTrusted
         startHotkeys()
@@ -30,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         permissionPollTimer?.invalidate()
         hotkeyController.stop()
+        actions.releaseKeys()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -68,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "打开设置...", action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(NSMenuItem(title: "重新启动按键监听", action: #selector(restartHotkeys), keyEquivalent: "r"))
+        menu.addItem(NSMenuItem(title: "释放卡住的按键", action: #selector(releaseStuckKeys), keyEquivalent: ""))
 
         if !AccessibilityManager.isTrusted {
             menu.addItem(NSMenuItem(title: "开启辅助功能权限...", action: #selector(requestAccessibility), keyEquivalent: ""))
@@ -124,8 +127,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func restartHotkeys() {
+        actions.releaseKeys()
         hotkeyController.stop()
         startHotkeys()
+    }
+
+    @objc private func releaseStuckKeys() {
+        actions.releaseKeys()
     }
 
     @objc private func openSettings() {
@@ -157,6 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         actions.voiceDown()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [actions] in
             actions.voiceUp()
+            actions.releaseKeys()
         }
     }
 
